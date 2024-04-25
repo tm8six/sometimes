@@ -1,0 +1,150 @@
+{
+  "name": "pipeline-service",
+  "description": "API for the Pipeline product",
+  "keywords": [
+    "api",
+    "pipeline"
+  ],
+  "version": "3.130.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "tap": "tap",
+    "generate": "npm run config-doc && npm run vrl-errors-doc",
+    "config-doc": "config-doc config.js > ./doc/env.md",
+    "vrl-errors-doc": "./tools/vrl-errors-doc.js > ./doc/error-codes.md",
+    "tap:watch": "tap --no-coverage-report -w",
+    "lint": "eslint ./",
+    "lint:fix": "npm run lint -- --fix",
+    "local": "env $(cat ./env/local.env) ",
+    "pretest": "mkdir -p coverage",
+    "test": "docker-compose -p pipeline-service-${BUILD_TAG:-1} -f compose/base.yml -f compose/test.yml up --remove-orphans --exit-code-from pipeline-service --build",
+    "test:clean": "docker-compose -p pipeline-service-${BUILD_TAG:-1} -f compose/base.yml -f compose/test.yml down --volumes --remove-orphans",
+    "pretest:ci": "npm run lint",
+    "test:ci": "./tools/test-ci.sh",
+    "pretest:deployment": "make clean && make RELEASE_VERSION=1.0.0-test.1 render-local",
+    "test:deployment": "tap test/deployment --no-coverage --timeout=60",
+    "commitlint": "./node_modules/.bin/commitlint-logdna",
+    "postinstall": "./tools/postinstall.sh",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --no-ci --dry-run --branches=${BRANCH_NAME:-main}",
+    "start": "docker-compose -p pipeline-service-local -f compose/base.yml -f compose/dev.yml up --always-recreate-deps --remove-orphans",
+    "stop": " docker-compose -p pipeline-service-local -f compose/base.yml -f compose/dev.yml down",
+    "start:dev": "npm start -- --wait -d && npm run local node migrate.js && npm run local node tools/seed.js; npm run local node index.js ",
+    "migrate:service": "node-pg-migrate -d DATABASE_URL -m migrations/service -t service_migrations",
+    "migrate:metrics": "node-pg-migrate -d METRICS_DATABASE_URL -m migrations/metrics -t metrics_migrations",
+    "migrate:data:service": "node-pg-migrate -d DATABASE_URL -m migrations/data/service -t service_data_migrations",
+    "migrate:data:metrics": "node-pg-migrate -d METRICS_DATABASE_URL -m migrations/data/metrics -t metrics_data_migrations"
+  },
+  "author": "Mike Del Tito <mike.deltito@logdna.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/answerbook/pipeline-service.git"
+  },
+  "homepage": "https://github.com/answerbook/pipeline-service",
+  "bugs": {
+    "url": "https://github.com/answerbook/pipeline-service/issues"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "eslintConfig": {
+    "root": true,
+    "ignorePatterns": [
+      "node_modules/",
+      "coverage/",
+      "deployment/"
+    ],
+    "extends": "logdna",
+    "parserOptions": {
+      "ecmaVersion": 2022
+    },
+    "env": {
+      "es2022": true
+    },
+    "rules": {
+      "max-len": [
+        2,
+        90,
+        {
+          "ignoreComments": true,
+          "ignoreTemplateLiterals": true
+        }
+      ],
+      "space-unary-ops": [
+        2,
+        {
+          "words": false,
+          "nonwords": false,
+          "overrides": {
+            "yield": true
+          }
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@answerbook/commitlint-config-logdna": "^2.1.2",
+    "@answerbook/release-config-docker": "^3.0.8",
+    "@logdna/setup-chain": "^1.3.1",
+    "@logdna/tail-file": "^3.0.0",
+    "@razee/mustachetemplate": "^3.1.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "casual": "^1.6.2",
+    "eslint": "^8.19.0",
+    "eslint-config-logdna": "^7.0.2",
+    "get-port": "^5.1.1",
+    "js-yaml": "^4.1.0",
+    "nock": "^13.2.4",
+    "semantic-release": "^19.0.5",
+    "split2": "^4.2.0",
+    "supertest": "^6.2.4",
+    "tap": "^16.3.0",
+    "tap-parser": "^11.0.1",
+    "tap-xunit": "^2.4.1",
+    "tcompare": "^6.4.4",
+    "tmatch": "^5.0.0"
+  },
+  "dependencies": {
+    "@answerbook/chrono-format": "^1.4.0",
+    "@answerbook/create-pino-config": "^5.0.0",
+    "@answerbook/fastify-health-check": "^2.0.1",
+    "@answerbook/fastify-http-404": "^1.0.2",
+    "@answerbook/fastify-http-error": "^2.0.1",
+    "@answerbook/fastify-metrics": "^2.0.0",
+    "@fastify/autoload": "^5.0.0",
+    "@fastify/compress": "^6.5.0",
+    "@fastify/cors": "^8.0.0",
+    "@fastify/routes": "^5.0.0",
+    "@fastify/swagger": "^8.12.0",
+    "@fastify/swagger-ui": "^1.10.1",
+    "@iarna/toml": "^2.2.5",
+    "@isaacs/ttlcache": "^1.4.1",
+    "@logdna/env-config": "^1.1.0",
+    "@logdna/stdlib": "^1.1.5",
+    "acorn": "^8.8.2",
+    "ajv": "^8.11.0",
+    "ajv-errors": "^3.0.0",
+    "ajv-formats": "^2.1.1",
+    "ajv-keywords": "^5.1.0",
+    "aws-sdk": "^2.1494.0",
+    "execa": "^8.0.1",
+    "fast-jwt": "^3.3.2",
+    "fastify": "^4.24.3",
+    "fastify-plugin": "^3.0.1",
+    "fluent-json-schema": "^4.2.1",
+    "got": "^11.8.3",
+    "graphql-ws": "^5.14.2",
+    "node-pg-migrate": "^6.2.1",
+    "pg": "^8.7.3",
+    "pg-format": "^1.0.4",
+    "pino": "^8.7.0",
+    "pino-pretty": "^10.2.0",
+    "prom-client": "^14.2.0",
+    "tar": "^6.2.0",
+    "ws": "^8.11.0"
+  }
+}
